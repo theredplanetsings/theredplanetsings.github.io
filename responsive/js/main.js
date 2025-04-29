@@ -26,6 +26,5 @@ d3.csv('data/vancouver_trails.csv')
   })
   .catch(error => console.error(error));
 
-
 // Listen to window resize event and update the chart. 
 // This event gets triggered on page load too so we set a flag to prevent updating the chart initially
