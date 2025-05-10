@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>D3 Linked Charts - Bestselling Books</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700&display=swap" rel="stylesheet">
+
+</head>
+<body> 
+    <h1>Bestselling Books Dashboard</h1>
+
+    <!-- **NEW** year‐filter checkboxes -->
+    <div id="controls">
+      <strong>Filter by Year:</strong>
+      <button id="select-all">Select All</button>
+      <button id="clear-all">Clear All</button>
+      <span id="year-selection"></span>
+      <br>
+      <button id="voice-toggle">Enable Voice Over</button>
+
+    </div>
+
+    <!-- your existing two‐chart flex container -->
+    <div class="container">
+        <div class="margin-right">
+          <svg id="scatterplot"></svg>
+        </div>
+        <div>
+          <svg id="barchart"></svg>
+        </div>
+    </div>
+
+    <div class="source">
+      Source: 
+      <a 
+        href="https://www.kaggle.com/datasets/sootersaalu/amazon-top-50-bestselling-books-2009-2019/data" 
+      >
+        Source: Amazon Top 50 Bestselling Books 2009 - 2019
+      </a>
+    </div>
+    <!-- tooltip -->
+    <div id="tooltip"></div>
+    
+    <!-- load D3, then your charts -->
+    <script src="js/d3.v6.min.js"></script>
+    <script src="js/scatterplot.js"></script>
+    <script src="js/barchart.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
