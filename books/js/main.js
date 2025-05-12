@@ -1,9 +1,6 @@
-
-let voiceEnabled = false;
-
+// tooltips
 function showTooltip(event, d) {
-  const tt = d3.select('#tooltip');
-  tt
+  d3.select('#tooltip')
     .html(`
       <div><strong>${d.name}</strong></div>
       <div>Author: ${d.author}</div>
@@ -11,70 +8,64 @@ function showTooltip(event, d) {
       <div>Price: $${d.price.toFixed(2)}</div>
       <div>Rating: ${d.userRating.toFixed(1)}</div>
     `)
-    .style('left',  (event.pageX + 10) + 'px')
-    .style('top',   (event.pageY + 10) + 'px')
+    .style('left', (event.pageX + 10) + 'px')
+    .style('top',  (event.pageY + 10) + 'px')
+    .style('display','block');
+}
+
+const showPointTooltip = showTooltip;  
+
+function showBarTooltip(event, d) {
+  d3.select('#tooltip')
+    .html(`
+      <div><strong>${d.genre}</strong></div>
+      <div>Count: ${d.count}</div>
+    `)
+    .style('left', (event.pageX + 10) + 'px')
+    .style('top',  (event.pageY + 10) + 'px')
     .style('display','block');
 }
 
 function hideTooltip() {
-  d3.select('#tooltip')
-    .style('display','none');
+  d3.select('#tooltip').style('display','none');
 }
 
-// alias for scatterplot
-const showPointTooltip = showTooltip;
-// track filters
-let yearFilter = new Set();
-let rawData, filteredByYear;
+// State
+let yearFilter    = new Set(),
+    rawData, filteredByYear,
+    barchart, scatterplot,
+    genreFilter   = new Set(['Fiction','Non Fiction']);
 
-let barchart, scatterplot;
-
-// at top of main.js
-let genreFilter = new Set(['Fiction','Non Fiction']);
 const dispatcher = d3.dispatch('toggleGenre');
-
-// wire the toggle event
 dispatcher.on('toggleGenre', genre => {
   if (genreFilter.has(genre)) genreFilter.delete(genre);
   else                        genreFilter.add(genre);
   render();
 });
 
+// Load and preprocess
 d3.csv('data/book_data.csv', d => ({
-  name: d.Name,
-  author: d.Author,
+  name:       d.Name,
+  author:     d.Author,
   userRating: +d['User Rating'],
-  reviews: +d.Reviews,
-  price: +d.Price,
-  year: +d.Year,
-  genre: d.Genre  
+  reviews:    +d.Reviews,
+  price:      +d.Price,
+  year:       +d.Year,
+  genre:      d.Genre  
 }))
 .then(data => {
   rawData = data;
 
-d3.select('#select-all')
-  .on('click', () => {
-    d3.selectAll('#year-selection input')
-      .property('checked', true);
+  // year‐filter controls
+  d3.select('#select-all').on('click', () => {
+    d3.selectAll('#year-selection input').property('checked', true);
+    updateByYear();
+  });
+  d3.select('#clear-all').on('click', () => {
+    d3.selectAll('#year-selection input').property('checked', false);
     updateByYear();
   });
 
-d3.select('#clear-all')
-  .on('click', () => {
-    d3.selectAll('#year-selection input')
-      .property('checked', false);
-    updateByYear();
-  });
-
-
-d3.select('#voice-toggle')
-  .on('click', () => {
-    voiceEnabled = !voiceEnabled;
-    d3.select('#voice-toggle')
-      .text(voiceEnabled ? 'Disable Voice Over' : 'Enable Voice Over');
-  });
-
-  // 1) build year checkboxes
   const years = Array.from(new Set(data.map(d => d.year))).sort();
   const yearSel = d3.select('#year-selection');
   years.forEach(y => {
@@ -85,7 +76,7 @@ d3.select('#voice-toggle')
     yearFilter.add(y);
   });
 
-  // 2) instantiate charts
+  // instantiate charts
   const colorScale = d3.scaleOrdinal()
     .domain(['Fiction','Non Fiction'])
     .range(['#74c476','#c7e9c0']);
@@ -99,52 +90,38 @@ d3.select('#voice-toggle')
   scatterplot = new Scatterplot({
     parentElement: '#scatterplot',
     colorScale
-  });
+  }, rawData);
 
-
-  // 1) start by showing ALL genres
+  // initial draw
+  yearFilter  = new Set(years);
   genreFilter = new Set(['Fiction','Non Fiction']);
-  // 2) start by having every year checked
-  yearFilter = new Set(years);
-  
-  // first draw
   updateByYear();
+
+  // responsive redraw
+  let firstLoad = true;
+  d3.select(window).on('resize', () => {
+    if (firstLoad) firstLoad = false;
+    else {
+      barchart.updateVis();
+      scatterplot.updateVis();
+    }
+  });
 })
 .catch(console.error);
 
-function updateByYear(){
-  // update yearFilter
+function updateByYear() {
   const boxes = d3.selectAll('#year-selection input').nodes();
   yearFilter = new Set(boxes.filter(cb => cb.checked).map(cb => +cb.value));
   render();
 }
 
-function render(){
-  // filter rawData by year
+function render() {
   filteredByYear = rawData.filter(d => yearFilter.has(d.year));
 
-  // render barchart (counts per genre in filteredByYear)
   barchart.data = filteredByYear;
   barchart.updateVis();
 
-
-  // 3) scatter: treat genreFilter as the list of *hidden* genres
   const scatterData = filteredByYear.filter(d => genreFilter.has(d.genre));
-
   scatterplot.data = scatterData;
   scatterplot.updateVis();
 }
-
-function speak(text) {
-  // 1) if voice is off or browser doesn't support it, do nothing
-  if (!voiceEnabled || !window.speechSynthesis) return;
-
-  // 2) otherwise cancel any in-flight speech and speak
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 1;
-  u.pitch = 1;
-  window.speechSynthesis.speak(u);
-}
-
-
